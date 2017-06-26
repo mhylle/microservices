@@ -1,67 +1,117 @@
 package info.mhylle.playground.microservices.model;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.*;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class Patient {
-  private UUID identifier;
+public class Patient
+{
+  private UUID id;
+  private String identifier;
   private String firstname;
   private String middlename;
   private String familyname;
   private LocalDateTime birthdate;
   private Address address;
-
-  public Patient() {
-    identifier = UUID.randomUUID();
+  
+  public Patient()
+  {
+    id = UUID.randomUUID();
   }
-
-  public Patient(UUID identifier) {
-    this.identifier = identifier;
+  
+  public Patient(UUID id)
+  {
+    this.id = id;
   }
-
-  public UUID getIdentifier() {
+  
+  public UUID getId()
+  {
+    return id;
+  }
+  
+  public void setId(UUID id)
+  {
+    this.id = id;
+  }
+  
+  public String getIdentifier()
+  {
     return identifier;
   }
-
-  public String getFirstname() {
+  
+  public void setIdentifier(String identifier)
+  {
+    this.identifier = identifier;
+  }
+  
+  public String getFirstname()
+  {
     return firstname;
   }
-
-  public void setFirstname(String firstname) {
+  
+  public void setFirstname(String firstname)
+  {
     this.firstname = firstname;
   }
-
-  public String getMiddlename() {
+  
+  public String getMiddlename()
+  {
     return middlename;
   }
-
-  public void setMiddlename(String middlename) {
+  
+  public void setMiddlename(String middlename)
+  {
     this.middlename = middlename;
   }
-
-  public String getFamilyname() {
+  
+  public String getFamilyname()
+  {
     return familyname;
   }
-
-  public void setFamilyname(String familyname) {
+  
+  public void setFamilyname(String familyname)
+  {
     this.familyname = familyname;
   }
-
-  public LocalDateTime getBirthdate() {
+  
+  public LocalDateTime getBirthdate()
+  {
     return birthdate;
   }
-
-  public void setBirthdate(LocalDateTime birthdate) {
+  
+  public void setBirthdate(LocalDateTime birthdate)
+  {
     this.birthdate = birthdate;
   }
-
-  public Address getAddress() {
+  
+  public Address getAddress()
+  {
     return address;
   }
-
-  public void setAddress(Address address) {
+  
+  public void setAddress(Address address)
+  {
     this.address = address;
+  }
+  
+  @Override
+  public boolean equals(Object o)
+  {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Patient patient = (Patient) o;
+    return Objects.equals(identifier, patient.identifier);
+  }
+  
+  @Override
+  public int hashCode()
+  {
+    return Objects.hash(identifier);
   }
 }

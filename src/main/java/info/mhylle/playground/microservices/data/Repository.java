@@ -1,12 +1,11 @@
 package info.mhylle.playground.microservices.data;
 
+import java.util.*;
+
 import info.mhylle.playground.microservices.model.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
-public class Repository {
+public class Repository
+{
   private static Repository _instance;
   private List<Patient> patients;
   private List<EpisodeOfCare> episodesOfCare;
@@ -15,8 +14,9 @@ public class Repository {
   private List<Period> periods;
   private List<SKSCode> sksCodes;
   private List<SORCode> sorCodes;
-
-  private Repository() {
+  
+  private Repository()
+  {
     patients = new ArrayList<>();
     episodesOfCare = new ArrayList<>();
     encounters = new ArrayList<>();
@@ -25,67 +25,96 @@ public class Repository {
     sksCodes = new ArrayList<>();
     sorCodes = new ArrayList<>();
   }
-
-  public static Repository getInstance() {
+  
+  public static Repository getInstance()
+  {
     if (_instance == null) {
       _instance = new Repository();
     }
     return _instance;
   }
-
-  public void addPatient(Patient patient) {
+  
+  public void addPatient(Patient patient)
+  {
+    if (patients.contains(patient)) {
+      return;
+    }
+    Address address = patient.getAddress();
+    if (address != null) {
+      for (Address address1 : addresses) {
+        if (address1.getIdentifier().equals(address.getIdentifier())) {
+          patient.getAddress().setId(address1.getId());
+        }
+      }
+      addAddress(address);
+    }
     patients.add(patient);
   }
-
-  public List<Patient> getPatients() {
+  
+  public List<Patient> getPatients()
+  {
     return patients;
   }
-
-  public void addEpisodeOfCare(EpisodeOfCare episodeOfCare) {
+  
+  public void addEpisodeOfCare(EpisodeOfCare episodeOfCare)
+  {
     episodesOfCare.add(episodeOfCare);
   }
-
-  public List<EpisodeOfCare> getEpisodesOfCare() {
+  
+  public List<EpisodeOfCare> getEpisodesOfCare()
+  {
     return episodesOfCare;
   }
-
-  public void addEncounter(Encounter encounter) {
+  
+  public void addEncounter(Encounter encounter)
+  {
     encounters.add(encounter);
   }
-
-  public List<Encounter> getEncounters() {
+  
+  public List<Encounter> getEncounters()
+  {
     return encounters;
   }
-
-  public void addAddress(Address address) {
-    addresses.add(address);
+  
+  public void addAddress(Address address)
+  {
+    if (!addresses.contains(address)) {
+      addresses.add(address);
+    }
   }
-
-  public List<Address> getAddresses() {
+  
+  public List<Address> getAddresses()
+  {
     return addresses;
   }
-
-  public void addPeriod(Period period) {
+  
+  public void addPeriod(Period period)
+  {
     periods.add(period);
   }
-
-  public List<Period> getPeriods() {
+  
+  public List<Period> getPeriods()
+  {
     return periods;
   }
-
-  public void addSksCode(SKSCode sksCode) {
+  
+  public void addSksCode(SKSCode sksCode)
+  {
     sksCodes.add(sksCode);
   }
-
-  public List<SKSCode> getSksCodes() {
+  
+  public List<SKSCode> getSksCodes()
+  {
     return sksCodes;
   }
-
-  public void addSorCode(SORCode sorCode) {
+  
+  public void addSorCode(SORCode sorCode)
+  {
     sorCodes.add(sorCode);
   }
-
-  public List<SORCode> getSorCodes() {
+  
+  public List<SORCode> getSorCodes()
+  {
     return sorCodes;
   }
 }

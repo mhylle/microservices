@@ -1,11 +1,13 @@
 package info.mhylle.playground.microservices.model;
 
+import java.util.*;
+
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.UUID;
 
 @XmlRootElement
 public class Address {
-  private UUID identifier;
+  private UUID id;
+  private String identifier;
   private String line;
   private String postalCode;
   private String city;
@@ -13,17 +15,33 @@ public class Address {
   private int countrycode;
 
   public Address() {
-    identifier = UUID.randomUUID();
+    id = UUID.randomUUID();
   }
-
-  public Address(UUID identifier) {
+  
+  public Address(UUID id)
+  {
+    this.id = id;
+  }
+  
+  public void setIdentifier(String identifier)
+  {
     this.identifier = identifier;
   }
-
-  public UUID getIdentifier() {
+  
+  public String getIdentifier() {
     return identifier;
   }
-
+  
+  public UUID getId()
+  {
+    return id;
+  }
+  
+  public void setId(UUID id)
+  {
+    this.id = id;
+  }
+  
   public String getLine() {
     return line;
   }
@@ -62,5 +80,24 @@ public class Address {
 
   public void setCountrycode(int countrycode) {
     this.countrycode = countrycode;
+  }
+  
+  @Override
+  public boolean equals(Object o)
+  {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Address address = (Address) o;
+    return Objects.equals(identifier, address.identifier);
+  }
+  
+  @Override
+  public int hashCode()
+  {
+    return Objects.hash(identifier);
   }
 }
