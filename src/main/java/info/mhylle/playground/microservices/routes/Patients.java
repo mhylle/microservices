@@ -1,11 +1,12 @@
 package info.mhylle.playground.microservices.routes;
 
-import info.mhylle.playground.microservices.data.Repository;
-import info.mhylle.playground.microservices.model.Patient;
+import java.util.List;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import java.util.List;
+
+import info.mhylle.playground.microservices.data.Repository;
+import info.mhylle.playground.microservices.model.Patient;
 
 @Path("/patients")
 public class Patients {
@@ -17,7 +18,9 @@ public class Patients {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public void addPatient(Patient patient) {
+  @Produces(MediaType.APPLICATION_JSON)
+  public String addPatient(Patient patient) {
     Repository.getInstance().addPatient(patient);
+    return "Patient added";
   }
 }
