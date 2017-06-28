@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.*;
 import org.apache.http.client.methods.*;
@@ -16,8 +17,8 @@ import info.mhylle.playground.microservices.model.*;
 
 public class ServiceClient
 {
-  private static final int NR_OF_PATIENTS = 50000;
-  private static final int NR_OF_ADDRESSES = 50000;
+  private static final int NR_OF_PATIENTS = 1;
+  private static final int NR_OF_ADDRESSES = 0;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
@@ -51,12 +52,12 @@ public class ServiceClient
     readData(streets, "streets", "streetname");
 
 //    createAddresses();
-//    long startTime = System.nanoTime();
-//    createPatients();
-//    long endTime = System.nanoTime();
-//    long elapsed = endTime - startTime;
+    long startTime = System.nanoTime();
+    createPatients();
+    long endTime = System.nanoTime();
+    long elapsed = endTime - startTime;
 
-//    System.out.println("elapsed time= " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
+    System.out.println("elapsed time= " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
   }
   
   private void readData(
@@ -91,7 +92,7 @@ public class ServiceClient
       URL url = new URL("http://localhost:8080/microservices/api/patients");
       
       for (int i = 0; i < NR_OF_PATIENTS; i++) {
-        
+        long startTime = System.nanoTime();
         Patient p = createNewPatient();
         ObjectMapper mapper = new ObjectMapper();
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -108,6 +109,10 @@ public class ServiceClient
         int responseCode = connection.getResponseCode();
         String responseMessage = connection.getResponseMessage();
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
+        long endTime = System.nanoTime();
+        long elapsed = endTime - startTime;
+  
+        System.out.println("Time to create patient: " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
       }
     } catch (MalformedURLException e) {
       e.printStackTrace();
@@ -192,10 +197,16 @@ public class ServiceClient
     try {
       HttpResponse response = HttpClientBuilder.create().build().execute(request);
       HttpEntity entity = response.getEntity();
-      String s = EntityUtils.toString(entity);
-      ObjectMapper mapper = new ObjectMapper();
-//      System.out.println("s = " + s);
-      return mapper.readValue(s, Address.class);
+      if (entity != null) {
+        String s = null;
+        ObjectMapper mapper = null;
+        s = EntityUtils.toString(entity);
+        mapper = new ObjectMapper();
+        return mapper.readValue(s, Address.class);
+      } else {
+        return null;
+      }
+      
     } catch (IOException e) {
       e.printStackTrace();
     }
