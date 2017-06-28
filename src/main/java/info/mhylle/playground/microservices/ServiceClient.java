@@ -17,8 +17,8 @@ import info.mhylle.playground.microservices.model.*;
 
 public class ServiceClient
 {
-  private static final int NR_OF_PATIENTS = 100;
-  private static final int NR_OF_ADDRESSES = 100;
+  private static final int NR_OF_PATIENTS = 50000;
+  private static final int NR_OF_ADDRESSES = 50000;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
@@ -40,7 +40,7 @@ public class ServiceClient
     states = new ArrayList<>();
     streetnumbers = new ArrayList<>();
     streets = new ArrayList<>();
-    
+    getAddressCount();
     readData(firstnames, "firstnames", "firstname");
     readData(lastnames, "lastnames", "lastname");
     readData(cities, "cities", "city");
@@ -64,7 +64,7 @@ public class ServiceClient
   {
     
     try {
-      InputStream in = new FileInputStream("C:\\projects\\playground\\microservices\\resources\\" + type + ".json");
+      InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
       StringBuilder json = new StringBuilder();
       String data;
@@ -192,12 +192,28 @@ public class ServiceClient
       HttpEntity entity = response.getEntity();
       String s = EntityUtils.toString(entity);
       ObjectMapper mapper = new ObjectMapper();
-      System.out.println("s = " + s);
+//      System.out.println("s = " + s);
       return mapper.readValue(s, Address.class);
     } catch (IOException e) {
       e.printStackTrace();
     }
     return null;
+  }
+
+  private void getAddressCount() {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses");
+    HttpResponse response = null;
+    try {
+      response = HttpClientBuilder.create().build().execute(request);
+      HttpEntity entity = response.getEntity();
+      String s = EntityUtils.toString(entity);
+
+      ObjectMapper mapper = new ObjectMapper();
+      Address[] addresses = mapper.readValue(s, Address[].class);
+      System.out.println("addresses = " + addresses.length);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
   
   private Address createNewAddress(int id)
@@ -253,7 +269,7 @@ public class ServiceClient
   {
     
     try {
-      URL url = new URL("http://localhost:8080/microservices/api/addresses/action/nextIdentifier");
+      URL url = new URL("http://localhost:8080/microservices/api/addresses/nextIdentifier");
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.setDoInput(true);
       connection.setRequestProperty("Content-Type", "application/json");
