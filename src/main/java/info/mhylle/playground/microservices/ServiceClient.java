@@ -1,22 +1,30 @@
 package info.mhylle.playground.microservices;
 
-import java.io.*;
-import java.net.*;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.http.*;
-import org.apache.http.client.methods.*;
+import info.mhylle.playground.microservices.model.Address;
+import info.mhylle.playground.microservices.model.Patient;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jettison.json.*;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
-import info.mhylle.playground.microservices.model.*;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
-public class ServiceClient
-{
+public class ServiceClient {
   private static final int NR_OF_PATIENTS = 1;
   private static final int NR_OF_ADDRESSES = 0;
   private List<String> firstnames;
@@ -25,15 +33,13 @@ public class ServiceClient
   private List<String> states;
   private List<String> streetnumbers;
   private List<String> streets;
-  
-  public static void main(String[] args)
-  {
+
+  public static void main(String[] args) {
     ServiceClient serviceClient = new ServiceClient();
     serviceClient.start();
   }
-  
-  private void start()
-  {
+
+  private void start() {
     firstnames = new ArrayList<>();
     lastnames = new ArrayList<>();
     cities = new ArrayList<>();
@@ -44,7 +50,7 @@ public class ServiceClient
     int addressCount = getAddressCount();
     System.out.println("patientCount = " + patientCount);
     System.out.println("addressCount = " + addressCount);
-        readData(firstnames, "firstnames", "firstname");
+    readData(firstnames, "firstnames", "firstname");
     readData(lastnames, "lastnames", "lastname");
     readData(cities, "cities", "city");
     readData(states, "states", "state");
@@ -59,13 +65,12 @@ public class ServiceClient
 
     System.out.println("elapsed time= " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
   }
-  
+
   private void readData(
-    List<String> list,
-    String type,
-    String attribute)
-  {
-    
+      List<String> list,
+      String type,
+      String attribute) {
+
     try {
       InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -77,7 +82,7 @@ public class ServiceClient
       JSONArray array = new JSONArray(json.toString());
       for (int i = 0; i < array.length(); i++) {
         JSONObject o = (JSONObject) array.get(i);
-        
+
         String state = (String) o.get(attribute);
         list.add(state);
       }
@@ -85,12 +90,11 @@ public class ServiceClient
       e.printStackTrace();
     }
   }
-  
-  private void createPatients()
-  {
+
+  private void createPatients() {
     try {
       URL url = new URL("http://localhost:8080/microservices/api/patients");
-      
+
       for (int i = 0; i < NR_OF_PATIENTS; i++) {
         long startTime = System.nanoTime();
         Patient p = createNewPatient();
@@ -101,7 +105,7 @@ public class ServiceClient
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);
-        
+
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
           wr.write(s.getBytes());
@@ -111,7 +115,7 @@ public class ServiceClient
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
         long endTime = System.nanoTime();
         long elapsed = endTime - startTime;
-  
+
         System.out.println("Time to create patient: " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
       }
     } catch (MalformedURLException e) {
@@ -120,9 +124,8 @@ public class ServiceClient
       e.printStackTrace();
     }
   }
-  
-  private void createAddresses()
-  {
+
+  private void createAddresses() {
     try {
       URL url = new URL("http://localhost:8080/microservices/api/addresses");
       String nextAddressIdentifier = getNextAddressIdentifier();
@@ -140,7 +143,7 @@ public class ServiceClient
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);
-        
+
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
           wr.write(s.getBytes());
@@ -155,9 +158,8 @@ public class ServiceClient
       e.printStackTrace();
     }
   }
-  
-  private Patient createNewPatient()
-  {
+
+  private Patient createNewPatient() {
     Patient p = new Patient();
     p.setFirstname(firstnames.get(new Random().nextInt(firstnames.size() - 1)));
     p.setFamilyname(lastnames.get(new Random().nextInt(lastnames.size() - 1)));
@@ -183,17 +185,17 @@ public class ServiceClient
     String nextAddressIdentifier = getNextAddressIdentifier();
     if (nextAddressIdentifier != null && !"".equals(nextAddressIdentifier)) {
       int i1 = Integer.parseInt(nextAddressIdentifier);
-      
-      Address address = getAddress(new Random().nextInt(i1));
-      p.setAddress(address);
+      if (i1 > 0) {
+        Address address = getAddress(new Random().nextInt(i1));
+        p.setAddress(address);
+      }
     }
     return p;
   }
-  
-  private Address getAddress(int i1)
-  {
+
+  private Address getAddress(int i1) {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/" + i1);
-    
+
     try {
       HttpResponse response = HttpClientBuilder.create().build().execute(request);
       HttpEntity entity = response.getEntity();
@@ -206,7 +208,7 @@ public class ServiceClient
       } else {
         return null;
       }
-      
+
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -217,9 +219,8 @@ public class ServiceClient
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/amount");
     return retrieveAmount(request);
   }
-  
-  private int retrieveAmount(HttpUriRequest request)
-  {
+
+  private int retrieveAmount(HttpUriRequest request) {
     HttpResponse response;
     try {
       response = HttpClientBuilder.create().build().execute(request);
@@ -237,22 +238,21 @@ public class ServiceClient
     }
     return 0;
   }
-  
+
   private int getPatientCount() {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients/amount");
     return retrieveAmount(request);
   }
-  
-  private Address createNewAddress(int id)
-  {
+
+  private Address createNewAddress(int id) {
     Address address = new Address();
     address.setCity(cities.get(new Random().nextInt(cities.size() - 1)));
     String street = streets.get(new Random().nextInt(streetnumbers.size() - 1));
     String line = new StringBuilder().append(street)
-      .append(" ")
-      .append(streetnumbers.get(new Random().nextInt(streetnumbers.size() - 1)))
-      .toString();
-    
+        .append(" ")
+        .append(streetnumbers.get(new Random().nextInt(streetnumbers.size() - 1)))
+        .toString();
+
     address.setLine(line);
     int postalCode = new Random().nextInt(9999);
     if (postalCode < 999) {
@@ -261,25 +261,23 @@ public class ServiceClient
     address.setPostalCode("" + postalCode);
     address.setState(states.get(new Random().nextInt(states.size() - 1)));
     address.setIdentifier("" + id);
-    
+
     return address;
   }
-  
-  private LocalDate generateRandomBirthDate()
-  {
+
+  private LocalDate generateRandomBirthDate() {
     Random random = new Random();
     int minDay = (int) LocalDate.of(1900, 1, 1).toEpochDay();
     int maxDay = (int) LocalDate.of(2015, 1, 1).toEpochDay();
     long randomDay = minDay + random.nextInt(maxDay - minDay);
-    
+
     LocalDate randomBirthDate = LocalDate.ofEpochDay(randomDay);
     return randomBirthDate;
   }
-  
-  private static void getPatients()
-  {
+
+  private static void getPatients() {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients");
-    
+
     try {
       HttpResponse response = HttpClientBuilder.create().build().execute(request);
       StatusLine statusLine = response.getStatusLine();
@@ -291,10 +289,9 @@ public class ServiceClient
       e.printStackTrace();
     }
   }
-  
-  private String getNextAddressIdentifier()
-  {
-    
+
+  private String getNextAddressIdentifier() {
+
     try {
       URL url = new URL("http://localhost:8080/microservices/api/addresses/nextIdentifier");
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -303,7 +300,7 @@ public class ServiceClient
       connection.setRequestMethod("GET");
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(5000);
-      
+
       try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
         String inputLine = "";
         StringBuffer response = new StringBuffer();
@@ -313,7 +310,7 @@ public class ServiceClient
         in.close();
         int responseCode = connection.getResponseCode();
         String responseMessage = connection.getResponseMessage();
-        
+
         return response.toString();
       }
     } catch (IOException e) {

@@ -9,16 +9,37 @@ import java.util.List;
 
 @Path("/periods")
 public class Periods {
-
   @GET
   @Produces(MediaType.APPLICATION_JSON)
-  public List<Period> getPeriods() {
+  public List<Period> getAddresses() {
     return Repository.getInstance().getPeriods();
+  }
+
+  @GET
+  @Path("{id}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Period getPeriod(@PathParam("id") String id) {
+    return Repository.getInstance().getPeriods().stream()
+        .filter(period -> period.getIdentifier().equals(id))
+        .findFirst().orElse(null);
+  }
+
+  @GET
+  @Path("amount")
+  public int getAmount() {
+    return Repository.getInstance().getPeriods().size();
+  }
+
+  @GET
+  @Path("nextIdentifier")
+  @Produces(MediaType.APPLICATION_JSON)
+  public int getNextIdentifier() {
+    return Repository.getInstance().getPeriods().size();
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public void addAddress(Period period) {
+  public void addPeriod(Period period) {
     Repository.getInstance().addPeriod(period);
   }
 }

@@ -5,4 +5,12 @@ package info.mhylle.playground.microservices.model;
  */
 public class SORCode {
   String identifier;
+
+  public String getIdentifier() {
+    return identifier;
+  }
+
+  public void setIdentifier(String identifier) {
+    this.identifier = identifier;
+  }
 }
