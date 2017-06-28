@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.http.*;
 import org.apache.http.client.methods.*;
@@ -40,21 +39,24 @@ public class ServiceClient
     states = new ArrayList<>();
     streetnumbers = new ArrayList<>();
     streets = new ArrayList<>();
-    getAddressCount();
-    readData(firstnames, "firstnames", "firstname");
+    int patientCount = getPatientCount();
+    int addressCount = getAddressCount();
+    System.out.println("patientCount = " + patientCount);
+    System.out.println("addressCount = " + addressCount);
+        readData(firstnames, "firstnames", "firstname");
     readData(lastnames, "lastnames", "lastname");
     readData(cities, "cities", "city");
     readData(states, "states", "state");
     readData(streetnumbers, "streetnumbers", "streetnumber");
     readData(streets, "streets", "streetname");
-    
-    createAddresses();
-    long startTime = System.nanoTime();
-    createPatients();
-    long endTime = System.nanoTime();
-    long elapsed = endTime - startTime;
-    
-    System.out.println("elapsed time= " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
+
+//    createAddresses();
+//    long startTime = System.nanoTime();
+//    createPatients();
+//    long endTime = System.nanoTime();
+//    long elapsed = endTime - startTime;
+
+//    System.out.println("elapsed time= " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
   }
   
   private void readData(
@@ -200,20 +202,34 @@ public class ServiceClient
     return null;
   }
 
-  private void getAddressCount() {
-    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses");
-    HttpResponse response = null;
+  private int getAddressCount() {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/amount");
+    return retrieveAmount(request);
+  }
+  
+  private int retrieveAmount(HttpUriRequest request)
+  {
+    HttpResponse response;
     try {
       response = HttpClientBuilder.create().build().execute(request);
       HttpEntity entity = response.getEntity();
       String s = EntityUtils.toString(entity);
-
-      ObjectMapper mapper = new ObjectMapper();
-      Address[] addresses = mapper.readValue(s, Address[].class);
-      System.out.println("addresses = " + addresses.length);
+      int patientCount = 0;
+      try {
+        patientCount = Integer.parseInt(s);
+      } catch (NumberFormatException e) {
+        e.printStackTrace();
+      }
+      return patientCount;
     } catch (IOException e) {
       e.printStackTrace();
     }
+    return 0;
+  }
+  
+  private int getPatientCount() {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients/amount");
+    return retrieveAmount(request);
   }
   
   private Address createNewAddress(int id)
