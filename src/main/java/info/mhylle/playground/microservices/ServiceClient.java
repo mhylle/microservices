@@ -27,9 +27,10 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 1000;
-  private static final int NR_OF_ADDRESSES = 1000;
-  private static final int NR_OF_EPISODESOFCARE = 1000;
+  private static final int NR_OF_PATIENTS = 10;
+  private static final int NR_OF_ADDRESSES = 10;
+  private static final int NR_OF_EPISODESOFCARE = 10;
+  private static final int NR_OF_ENCOUNTERS= 10;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
@@ -210,7 +211,7 @@ public class ServiceClient {
         nextEncId = Integer.parseInt(nextEncounterIdentifier);
       }
 
-      for (int i = 0; i < NR_OF_EPISODESOFCARE; i++) {
+      for (int i = 0; i < NR_OF_ENCOUNTERS; i++) {
         Encounter p = createNewEncounter(nextEncId + i);
         ObjectMapper mapper = new ObjectMapper();
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
