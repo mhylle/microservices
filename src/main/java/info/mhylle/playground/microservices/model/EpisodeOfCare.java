@@ -1,7 +1,8 @@
 package info.mhylle.playground.microservices.model;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import java.util.UUID;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class EpisodeOfCare {
@@ -9,6 +10,7 @@ public class EpisodeOfCare {
   private String identifier;
   private String responsibleUnit;
   private String status;
+  private String period;
 
   public EpisodeOfCare() {
     id = UUID.randomUUID();
@@ -48,5 +50,15 @@ public class EpisodeOfCare {
 
   public void setStatus(String status) {
     this.status = status;
+  }
+  
+  public String getPeriod()
+  {
+    return period;
+  }
+  
+  public void setPeriod(String period)
+  {
+    this.period = period;
   }
 }

@@ -14,7 +14,7 @@ public class Patient
   private String middlename;
   private String familyname;
   private LocalDateTime birthdate;
-  private Address address;
+  private String address;
   
   public Patient()
   {
@@ -86,12 +86,12 @@ public class Patient
     this.birthdate = birthdate;
   }
   
-  public Address getAddress()
+  public String getAddress()
   {
     return address;
   }
   
-  public void setAddress(Address address)
+  public void setAddress(String address)
   {
     this.address = address;
   }

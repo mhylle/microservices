@@ -1,23 +1,30 @@
 [
   {
+    "id": "1",
     "code": "planned"
   },
   {
+    "id": "2",
     "code": "waitlist"
   },
   {
+    "id": "3",
     "code": "active"
   },
   {
+    "id": "4",
     "code": "onhold"
   },
   {
+    "id": "5",
     "code": "finished"
   },
   {
+    "id": "6",
     "code": "cancelled"
   },
   {
+    "id": "7",
     "code": "entered-in-error"
   }
 ]

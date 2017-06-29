@@ -1,51 +1,44 @@
 package info.mhylle.playground.microservices;
 
-import info.mhylle.playground.microservices.model.Address;
-import info.mhylle.playground.microservices.model.Encounter;
-import info.mhylle.playground.microservices.model.EpisodeOfCare;
-import info.mhylle.playground.microservices.model.Patient;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
+import java.io.*;
+import java.net.*;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.http.*;
+import org.apache.http.client.methods.*;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import org.codehaus.jettison.json.*;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
+import info.mhylle.playground.microservices.model.*;
+import info.mhylle.playground.microservices.model.Period;
 
-public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 10;
-  private static final int NR_OF_ADDRESSES = 10;
-  private static final int NR_OF_EPISODESOFCARE = 10;
-  private static final int NR_OF_ENCOUNTERS= 10;
+public class ServiceClient
+{
+  private static final int NR_OF_PATIENTS = 1000;
+  private static final int NR_OF_ADDRESSES = 1000;
+  private static final int NR_OF_EPISODESOFCARE = 1000;
+  private static final int NR_OF_ENCOUNTERS = 1000;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
   private List<String> states;
   private List<String> streetnumbers;
   private List<String> streets;
-  private List<String> status;
-  private List<String> sksCodes;
-
-  public static void main(String[] args) {
+  private List<Code> status;
+  private List<Code> sksCodes;
+  
+  public static void main(String[] args)
+  {
     ServiceClient serviceClient = new ServiceClient();
     serviceClient.start();
   }
-
-  private void start() {
+  
+  private void start()
+  {
     firstnames = new ArrayList<>();
     lastnames = new ArrayList<>();
     cities = new ArrayList<>();
@@ -64,10 +57,9 @@ public class ServiceClient {
     readData(states, "states", "state");
     readData(streetnumbers, "streetnumbers", "streetnumber");
     readData(streets, "streets", "streetname");
-    readData(status, "status", "code");
-    readData(sksCodes, "skscodes", "code");
-
-
+    readCode(status, "status", "code");
+    readCode(sksCodes, "skscodes", "code");
+    
     createAddresses();
     long startTime = System.nanoTime();
     createPatients();
@@ -77,12 +69,13 @@ public class ServiceClient {
     createEpisodesOfCare();
     createEncounters();
   }
-
+  
   private void readData(
-      List<String> list,
-      String type,
-      String attribute) {
-
+    List<String> list,
+    String type,
+    String attribute)
+  {
+    
     try {
       InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -94,7 +87,7 @@ public class ServiceClient {
       JSONArray array = new JSONArray(json.toString());
       for (int i = 0; i < array.length(); i++) {
         JSONObject o = (JSONObject) array.get(i);
-
+        
         String state = (String) o.get(attribute);
         list.add(state);
       }
@@ -102,11 +95,39 @@ public class ServiceClient {
       e.printStackTrace();
     }
   }
-
-  private void createPatients() {
+  
+  private void readCode(
+    List<Code> list,
+    String type,
+    String attribute)
+  {
+    
+    try {
+      InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
+      BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+      StringBuilder json = new StringBuilder();
+      String data;
+      while ((data = reader.readLine()) != null) {
+        json.append(data);
+      }
+      JSONArray array = new JSONArray(json.toString());
+      for (int i = 0; i < array.length(); i++) {
+        JSONObject o = (JSONObject) array.get(i);
+        
+        String id = (String) o.get("id");
+        String code = (String) o.get(attribute);
+        list.add(new Code(id, code));
+      }
+    } catch (JSONException | IOException e) {
+      e.printStackTrace();
+    }
+  }
+  
+  private void createPatients()
+  {
     try {
       URL url = new URL("http://localhost:8080/microservices/api/patients");
-
+      
       for (int i = 0; i < NR_OF_PATIENTS; i++) {
         long startTime = System.nanoTime();
         Patient p = createNewPatient();
@@ -117,7 +138,7 @@ public class ServiceClient {
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);
-
+        
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
           wr.write(s.getBytes());
@@ -127,15 +148,17 @@ public class ServiceClient {
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
         long endTime = System.nanoTime();
         long elapsed = endTime - startTime;
-
-        System.out.println("Time to create patient: " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
+        
+        System.out.println(
+          "Time to create patient: " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
-
-  private void createAddresses() {
+  
+  private void createAddresses()
+  {
     try {
       URL url = new URL("http://localhost:8080/microservices/api/addresses");
       String nextAddressIdentifier = getNextAddressIdentifier();
@@ -143,7 +166,7 @@ public class ServiceClient {
       if (nextAddressIdentifier != null && !"".equals(nextAddressIdentifier)) {
         nextAddrId = Integer.parseInt(nextAddressIdentifier);
       }
-      System.out.println("nextAddrId = " + nextAddrId);
+      
       for (int i = 0; i < NR_OF_ADDRESSES; i++) {
         Address p = createNewAddress(nextAddrId + i);
         ObjectMapper mapper = new ObjectMapper();
@@ -153,13 +176,13 @@ public class ServiceClient {
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);
-
+        
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
           wr.write(s.getBytes());
         }
-        int responseCode = connection.getResponseCode();
-        String responseMessage = connection.getResponseMessage();
+        connection.getResponseCode();
+        connection.getResponseMessage();
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
       }
     } catch (MalformedURLException e) {
@@ -168,7 +191,9 @@ public class ServiceClient {
       e.printStackTrace();
     }
   }
-  private void createEpisodesOfCare() {
+  
+  private void createEpisodesOfCare()
+  {
     try {
       URL url = new URL("http://localhost:8080/microservices/api/episodesofcare");
       String nextEpisodeOfCareIdentifier = getNextEpisodeOfCareIdentifier();
@@ -176,7 +201,7 @@ public class ServiceClient {
       if (nextEpisodeOfCareIdentifier != null && !"".equals(nextEpisodeOfCareIdentifier)) {
         nextEocId = Integer.parseInt(nextEpisodeOfCareIdentifier);
       }
-
+      
       for (int i = 0; i < NR_OF_EPISODESOFCARE; i++) {
         EpisodeOfCare p = createNewEpisodeOfCare(nextEocId + i);
         ObjectMapper mapper = new ObjectMapper();
@@ -186,14 +211,13 @@ public class ServiceClient {
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);
-
+        
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
           wr.write(s.getBytes());
         }
-        int responseCode = connection.getResponseCode();
-        String responseMessage = connection.getResponseMessage();
-        //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
+        connection.getResponseCode();
+        connection.getResponseMessage();
       }
     } catch (MalformedURLException e) {
       e.printStackTrace();
@@ -201,8 +225,9 @@ public class ServiceClient {
       e.printStackTrace();
     }
   }
-
-  private void createEncounters() {
+  
+  private void createEncounters()
+  {
     try {
       URL url = new URL("http://localhost:8080/microservices/api/encounters");
       String nextEncounterIdentifier = getNextEncounterIdentifier();
@@ -210,7 +235,7 @@ public class ServiceClient {
       if (nextEncounterIdentifier != null && !"".equals(nextEncounterIdentifier)) {
         nextEncId = Integer.parseInt(nextEncounterIdentifier);
       }
-
+      
       for (int i = 0; i < NR_OF_ENCOUNTERS; i++) {
         Encounter p = createNewEncounter(nextEncId + i);
         ObjectMapper mapper = new ObjectMapper();
@@ -220,13 +245,13 @@ public class ServiceClient {
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);
-
+        
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
           wr.write(s.getBytes());
         }
-        int responseCode = connection.getResponseCode();
-        String responseMessage = connection.getResponseMessage();
+        connection.getResponseCode();
+        connection.getResponseMessage();
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
       }
     } catch (MalformedURLException e) {
@@ -235,8 +260,9 @@ public class ServiceClient {
       e.printStackTrace();
     }
   }
-
-  private Patient createNewPatient() {
+  
+  private Patient createNewPatient()
+  {
     Patient p = new Patient();
     p.setFirstname(firstnames.get(new Random().nextInt(firstnames.size() - 1)));
     p.setFamilyname(lastnames.get(new Random().nextInt(lastnames.size() - 1)));
@@ -264,40 +290,44 @@ public class ServiceClient {
       int i1 = Integer.parseInt(nextAddressIdentifier);
       if (i1 > 0) {
         Address address = getAddress(new Random().nextInt(i1));
-        p.setAddress(address);
+        if (address != null) {
+          p.setAddress(address.getIdentifier());
+        }
       }
     }
     return p;
   }
-
-  private Address getAddress(int i1) {
+  
+  private Address getAddress(int i1)
+  {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/" + i1);
-
+    
     try {
       HttpResponse response = HttpClientBuilder.create().build().execute(request);
       HttpEntity entity = response.getEntity();
       if (entity != null) {
-        String s = null;
-        ObjectMapper mapper = null;
+        String s;
+        ObjectMapper mapper;
         s = EntityUtils.toString(entity);
         mapper = new ObjectMapper();
         return mapper.readValue(s, Address.class);
       } else {
         return null;
       }
-
     } catch (IOException e) {
       e.printStackTrace();
     }
     return null;
   }
-
-  private int getAddressCount() {
+  
+  private int getAddressCount()
+  {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/amount");
     return retrieveAmount(request);
   }
-
-  private int retrieveAmount(HttpUriRequest request) {
+  
+  private int retrieveAmount(HttpUriRequest request)
+  {
     HttpResponse response;
     try {
       response = HttpClientBuilder.create().build().execute(request);
@@ -315,21 +345,20 @@ public class ServiceClient {
     }
     return 0;
   }
-
-  private int getPatientCount() {
+  
+  private int getPatientCount()
+  {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients/amount");
     return retrieveAmount(request);
   }
-
-  private Address createNewAddress(int id) {
+  
+  private Address createNewAddress(int id)
+  {
     Address address = new Address();
     address.setCity(cities.get(new Random().nextInt(cities.size() - 1)));
     String street = streets.get(new Random().nextInt(streetnumbers.size() - 1));
-    String line = new StringBuilder().append(street)
-        .append(" ")
-        .append(streetnumbers.get(new Random().nextInt(streetnumbers.size() - 1)))
-        .toString();
-
+    String line = String.format("%s %s", street, streetnumbers.get(new Random().nextInt(streetnumbers.size() - 1)));
+    
     address.setLine(line);
     int postalCode = new Random().nextInt(9999);
     if (postalCode < 999) {
@@ -338,40 +367,70 @@ public class ServiceClient {
     address.setPostalCode("" + postalCode);
     address.setState(states.get(new Random().nextInt(states.size() - 1)));
     address.setIdentifier("" + id);
-
+    
     return address;
   }
-
-  private EpisodeOfCare createNewEpisodeOfCare(int id) {
+  
+  private EpisodeOfCare createNewEpisodeOfCare(int id)
+  {
     EpisodeOfCare episodeOfCare = new EpisodeOfCare();
     episodeOfCare.setIdentifier("" + id);
-    episodeOfCare.setStatus(status.get(new Random().nextInt(status.size() - 1)));
-    episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)));
-
+    Period p = new Period();
+    p.setStart(generateRandomTime(LocalDateTime.now().getYear()-20, LocalDateTime.now().getYear()));
+    Random rnd = new Random();
+    double roll = rnd.nextDouble();
+    if (roll < 0.2) {
+      // 20 percent of all episodes of care are closed..
+      for (Code code : status) {
+        if (code.code.equals("finished")) {
+          episodeOfCare.setStatus(code.id);
+        }
+      }
+    } else {
+      episodeOfCare.setStatus(status.get(new Random().nextInt(status.size() - 1)).id);
+    }
+    
+    episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).id);
+    
+    
     return episodeOfCare;
   }
-  private Encounter createNewEncounter(int id) {
-    Encounter encounter= new Encounter();
+  
+  private Encounter createNewEncounter(int id)
+  {
+    Encounter encounter = new Encounter();
     encounter.setIdentifier("" + id);
-    encounter.setStatus(status.get(new Random().nextInt(status.size() - 1)));
-    encounter.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)));
-
+    encounter.setStatus(status.get(new Random().nextInt(status.size() - 1)).id);
+    encounter.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).id);
+    
     return encounter;
   }
-
-  private LocalDate generateRandomBirthDate() {
+  
+  private LocalDate generateRandomBirthDate()
+  {
     Random random = new Random();
     int minDay = (int) LocalDate.of(1900, 1, 1).toEpochDay();
     int maxDay = (int) LocalDate.of(2015, 1, 1).toEpochDay();
     long randomDay = minDay + random.nextInt(maxDay - minDay);
-
+    
     LocalDate randomBirthDate = LocalDate.ofEpochDay(randomDay);
     return randomBirthDate;
   }
-
-  private static void getPatients() {
+  private LocalDateTime generateRandomTime(int startYear, int endYear)
+  {
+    Random random = new Random();
+    int minDay = (int) LocalDate.of(startYear, 1, 1).toEpochDay();
+    int maxDay = (int) LocalDate.of(endYear, 1, 1).toEpochDay();
+    long randomDay = minDay + random.nextInt(maxDay - minDay);
+    
+    LocalDate randomDate = LocalDate.ofEpochDay(randomDay);
+    return randomDate ;
+  }
+  
+  private static void getPatients()
+  {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients");
-
+    
     try {
       HttpResponse response = HttpClientBuilder.create().build().execute(request);
       StatusLine statusLine = response.getStatusLine();
@@ -383,39 +442,44 @@ public class ServiceClient {
       e.printStackTrace();
     }
   }
-
-  private String getNextAddressIdentifier() {
+  
+  private String getNextAddressIdentifier()
+  {
     return getNextEntityIdentifier("addresses");
   }
-
-  private String getNextEpisodeOfCareIdentifier() {
+  
+  private String getNextEpisodeOfCareIdentifier()
+  {
     return getNextEntityIdentifier("episodesofcare");
   }
-
-  private String getNextEncounterIdentifier() {
+  
+  private String getNextEncounterIdentifier()
+  {
     return getNextEntityIdentifier("encounters");
   }
-
-  private String getNextEntityIdentifier(String identifier) {
+  
+  private String getNextEntityIdentifier(String identifier)
+  {
     try {
-      URL url = new URL("http://localhost:8080/microservices/api/"+  identifier + "/nextIdentifier");
+      URL url = new URL("http://localhost:8080/microservices/api/" + identifier + "/nextIdentifier");
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.setDoInput(true);
       connection.setRequestProperty("Content-Type", "application/json");
       connection.setRequestMethod("GET");
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(5000);
-
+      
       return retriveIdentifier(connection);
     } catch (IOException e) {
       e.printStackTrace();
     }
     return "0";
   }
-
-  private String retriveIdentifier(HttpURLConnection connection) throws IOException {
+  
+  private String retriveIdentifier(HttpURLConnection connection) throws IOException
+  {
     try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-      String inputLine = "";
+      String inputLine;
       StringBuffer response = new StringBuffer();
       while ((inputLine = in.readLine()) != null) {
         response.append(inputLine);
@@ -423,8 +487,23 @@ public class ServiceClient {
       in.close();
       int responseCode = connection.getResponseCode();
       String responseMessage = connection.getResponseMessage();
-
+      
       return response.toString();
+    }
+  }
+  
+  class Code
+  {
+    String id;
+    String code;
+    
+    public Code(
+      String id,
+      String code)
+    {
+      
+      this.id = id;
+      this.code = code;
     }
   }
 }

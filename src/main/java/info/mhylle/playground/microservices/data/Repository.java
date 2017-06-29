@@ -39,15 +39,7 @@ public class Repository
     if (patients.contains(patient)) {
       return;
     }
-    Address address = patient.getAddress();
-    if (address != null) {
-      for (Address address1 : addresses) {
-        if (address1.getIdentifier().equals(address.getIdentifier())) {
-          patient.getAddress().setId(address1.getId());
-        }
-      }
-      addAddress(address);
-    }
+    
     patients.add(patient);
   }
   
