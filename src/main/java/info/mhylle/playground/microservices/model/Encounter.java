@@ -5,36 +5,49 @@ import java.util.UUID;
 
 @XmlRootElement
 public class Encounter {
-  private UUID identifier;
-  private int responsibleUnit;
-  private int status;
+  private UUID id;
+  private String identifier;
+  private String responsibleUnit;
+  private String status;
   private int priority;
 
   public Encounter() {
-    identifier = UUID.randomUUID();
+    id = UUID.randomUUID();
   }
 
-  public Encounter(UUID identifier) {
+  public Encounter(UUID id) {
+    this.id = id;
+  }
+
+  public UUID getId() {
+    return id;
+  }
+
+  public void setId(UUID id) {
+    this.id = id;
+  }
+
+  public void setIdentifier(String identifier) {
     this.identifier = identifier;
   }
 
-  public UUID getIdentifier() {
+  public String getIdentifier() {
     return identifier;
   }
 
-  public int getResponsibleUnit() {
+  public String getResponsibleUnit() {
     return responsibleUnit;
   }
 
-  public void setResponsibleUnit(int responsibleUnit) {
+  public void setResponsibleUnit(String responsibleUnit) {
     this.responsibleUnit = responsibleUnit;
   }
 
-  public int getStatus() {
+  public String getStatus() {
     return status;
   }
 
-  public void setStatus(int status) {
+  public void setStatus(String status) {
     this.status = status;
   }
 

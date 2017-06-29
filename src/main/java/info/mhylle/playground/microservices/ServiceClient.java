@@ -1,6 +1,8 @@
 package info.mhylle.playground.microservices;
 
 import info.mhylle.playground.microservices.model.Address;
+import info.mhylle.playground.microservices.model.Encounter;
+import info.mhylle.playground.microservices.model.EpisodeOfCare;
 import info.mhylle.playground.microservices.model.Patient;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -25,14 +27,17 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 1;
-  private static final int NR_OF_ADDRESSES = 0;
+  private static final int NR_OF_PATIENTS = 1000;
+  private static final int NR_OF_ADDRESSES = 1000;
+  private static final int NR_OF_EPISODESOFCARE = 1000;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
   private List<String> states;
   private List<String> streetnumbers;
   private List<String> streets;
+  private List<String> status;
+  private List<String> sksCodes;
 
   public static void main(String[] args) {
     ServiceClient serviceClient = new ServiceClient();
@@ -46,6 +51,8 @@ public class ServiceClient {
     states = new ArrayList<>();
     streetnumbers = new ArrayList<>();
     streets = new ArrayList<>();
+    status = new ArrayList<>();
+    sksCodes = new ArrayList<>();
     int patientCount = getPatientCount();
     int addressCount = getAddressCount();
     System.out.println("patientCount = " + patientCount);
@@ -56,14 +63,18 @@ public class ServiceClient {
     readData(states, "states", "state");
     readData(streetnumbers, "streetnumbers", "streetnumber");
     readData(streets, "streets", "streetname");
+    readData(status, "status", "code");
+    readData(sksCodes, "skscodes", "code");
 
-//    createAddresses();
+
+    createAddresses();
     long startTime = System.nanoTime();
     createPatients();
     long endTime = System.nanoTime();
     long elapsed = endTime - startTime;
-
     System.out.println("elapsed time= " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
+    createEpisodesOfCare();
+    createEncounters();
   }
 
   private void readData(
@@ -110,16 +121,14 @@ public class ServiceClient {
           String s = mapper.writeValueAsString(p);
           wr.write(s.getBytes());
         }
-        int responseCode = connection.getResponseCode();
-        String responseMessage = connection.getResponseMessage();
+        connection.getResponseCode();
+        connection.getResponseMessage();
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
         long endTime = System.nanoTime();
         long elapsed = endTime - startTime;
 
         System.out.println("Time to create patient: " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
       }
-    } catch (MalformedURLException e) {
-      e.printStackTrace();
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -136,6 +145,73 @@ public class ServiceClient {
       System.out.println("nextAddrId = " + nextAddrId);
       for (int i = 0; i < NR_OF_ADDRESSES; i++) {
         Address p = createNewAddress(nextAddrId + i);
+        ObjectMapper mapper = new ObjectMapper();
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+
+        try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+          String s = mapper.writeValueAsString(p);
+          wr.write(s.getBytes());
+        }
+        int responseCode = connection.getResponseCode();
+        String responseMessage = connection.getResponseMessage();
+        //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
+      }
+    } catch (MalformedURLException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+  private void createEpisodesOfCare() {
+    try {
+      URL url = new URL("http://localhost:8080/microservices/api/episodesofcare");
+      String nextEpisodeOfCareIdentifier = getNextEpisodeOfCareIdentifier();
+      int nextEocId = 0;
+      if (nextEpisodeOfCareIdentifier != null && !"".equals(nextEpisodeOfCareIdentifier)) {
+        nextEocId = Integer.parseInt(nextEpisodeOfCareIdentifier);
+      }
+
+      for (int i = 0; i < NR_OF_EPISODESOFCARE; i++) {
+        EpisodeOfCare p = createNewEpisodeOfCare(nextEocId + i);
+        ObjectMapper mapper = new ObjectMapper();
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+
+        try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+          String s = mapper.writeValueAsString(p);
+          wr.write(s.getBytes());
+        }
+        int responseCode = connection.getResponseCode();
+        String responseMessage = connection.getResponseMessage();
+        //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
+      }
+    } catch (MalformedURLException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void createEncounters() {
+    try {
+      URL url = new URL("http://localhost:8080/microservices/api/encounters");
+      String nextEncounterIdentifier = getNextEncounterIdentifier();
+      int nextEncId = 0;
+      if (nextEncounterIdentifier != null && !"".equals(nextEncounterIdentifier)) {
+        nextEncId = Integer.parseInt(nextEncounterIdentifier);
+      }
+
+      for (int i = 0; i < NR_OF_EPISODESOFCARE; i++) {
+        Encounter p = createNewEncounter(nextEncId + i);
         ObjectMapper mapper = new ObjectMapper();
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setDoOutput(true);
@@ -265,6 +341,23 @@ public class ServiceClient {
     return address;
   }
 
+  private EpisodeOfCare createNewEpisodeOfCare(int id) {
+    EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+    episodeOfCare.setIdentifier("" + id);
+    episodeOfCare.setStatus(status.get(new Random().nextInt(status.size() - 1)));
+    episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)));
+
+    return episodeOfCare;
+  }
+  private Encounter createNewEncounter(int id) {
+    Encounter encounter= new Encounter();
+    encounter.setIdentifier("" + id);
+    encounter.setStatus(status.get(new Random().nextInt(status.size() - 1)));
+    encounter.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)));
+
+    return encounter;
+  }
+
   private LocalDate generateRandomBirthDate() {
     Random random = new Random();
     int minDay = (int) LocalDate.of(1900, 1, 1).toEpochDay();
@@ -291,9 +384,20 @@ public class ServiceClient {
   }
 
   private String getNextAddressIdentifier() {
+    return getNextEntityIdentifier("addresses");
+  }
 
+  private String getNextEpisodeOfCareIdentifier() {
+    return getNextEntityIdentifier("episodesofcare");
+  }
+
+  private String getNextEncounterIdentifier() {
+    return getNextEntityIdentifier("encounters");
+  }
+
+  private String getNextEntityIdentifier(String identifier) {
     try {
-      URL url = new URL("http://localhost:8080/microservices/api/addresses/nextIdentifier");
+      URL url = new URL("http://localhost:8080/microservices/api/"+  identifier + "/nextIdentifier");
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.setDoInput(true);
       connection.setRequestProperty("Content-Type", "application/json");
@@ -301,21 +405,25 @@ public class ServiceClient {
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(5000);
 
-      try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-        String inputLine = "";
-        StringBuffer response = new StringBuffer();
-        while ((inputLine = in.readLine()) != null) {
-          response.append(inputLine);
-        }
-        in.close();
-        int responseCode = connection.getResponseCode();
-        String responseMessage = connection.getResponseMessage();
-
-        return response.toString();
-      }
+      return retriveIdentifier(connection);
     } catch (IOException e) {
       e.printStackTrace();
     }
     return "0";
+  }
+
+  private String retriveIdentifier(HttpURLConnection connection) throws IOException {
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+      String inputLine = "";
+      StringBuffer response = new StringBuffer();
+      while ((inputLine = in.readLine()) != null) {
+        response.append(inputLine);
+      }
+      in.close();
+      int responseCode = connection.getResponseCode();
+      String responseMessage = connection.getResponseMessage();
+
+      return response.toString();
+    }
   }
 }

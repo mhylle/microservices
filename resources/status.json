@@ -1,0 +1,23 @@
+[
+  {
+    "code": "planned"
+  },
+  {
+    "code": "waitlist"
+  },
+  {
+    "code": "active"
+  },
+  {
+    "code": "onhold"
+  },
+  {
+    "code": "finished"
+  },
+  {
+    "code": "cancelled"
+  },
+  {
+    "code": "entered-in-error"
+  }
+]

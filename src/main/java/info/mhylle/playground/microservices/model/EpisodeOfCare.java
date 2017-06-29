@@ -5,27 +5,40 @@ import java.util.UUID;
 
 @XmlRootElement
 public class EpisodeOfCare {
-  private UUID identifier;
-  private SORCode responsibleUnit;
+  private UUID id;
+  private String identifier;
+  private String responsibleUnit;
   private String status;
 
   public EpisodeOfCare() {
-    identifier = UUID.randomUUID();
+    id = UUID.randomUUID();
   }
 
-  public EpisodeOfCare(UUID identifier) {
+  public EpisodeOfCare(UUID id) {
+    this.id = id;
+  }
+
+  public void setIdentifier(String identifier) {
     this.identifier = identifier;
   }
 
-  public UUID getIdentifier() {
+  public String getIdentifier() {
     return identifier;
   }
 
-  public SORCode getResponsibleUnit() {
+  public UUID getId() {
+    return id;
+  }
+
+  public void setId(UUID id) {
+    this.id = id;
+  }
+
+  public String getResponsibleUnit() {
     return responsibleUnit;
   }
 
-  public void setResponsibleUnit(SORCode responsibleUnit) {
+  public void setResponsibleUnit(String responsibleUnit) {
     this.responsibleUnit = responsibleUnit;
   }
 
