@@ -18,10 +18,11 @@ import info.mhylle.playground.microservices.model.Period;
 
 public class ServiceClient
 {
-  private static final int NR_OF_PATIENTS = 1000;
-  private static final int NR_OF_ADDRESSES = 1000;
-  private static final int NR_OF_EPISODESOFCARE = 1000;
-  private static final int NR_OF_ENCOUNTERS = 1000;
+  private static final int NR_OF_PATIENTS = 5;
+  private static final int NR_OF_ADDRESSES = 5;
+  private static final int NR_OF_EPISODESOFCARE = 5;
+  private static final int NR_OF_ENCOUNTERS = 5;
+  private static final int NR_OF_PERIODS = 5;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
@@ -59,7 +60,7 @@ public class ServiceClient
     readData(streets, "streets", "streetname");
     readCode(status, "status", "code");
     readCode(sksCodes, "skscodes", "code");
-    
+    createPeriods();
     createAddresses();
     long startTime = System.nanoTime();
     createPatients();
@@ -128,8 +129,8 @@ public class ServiceClient
     try {
       URL url = new URL("http://localhost:8080/microservices/api/patients");
       
+      long startTime = System.nanoTime();
       for (int i = 0; i < NR_OF_PATIENTS; i++) {
-        long startTime = System.nanoTime();
         Patient p = createNewPatient();
         ObjectMapper mapper = new ObjectMapper();
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -146,12 +147,58 @@ public class ServiceClient
         connection.getResponseCode();
         connection.getResponseMessage();
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
-        long endTime = System.nanoTime();
-        long elapsed = endTime - startTime;
         
-        System.out.println(
-          "Time to create patient: " + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0);
       }
+      long endTime = System.nanoTime();
+      long elapsed = endTime - startTime;
+      System.out.println(
+        "Created " + NR_OF_PATIENTS + " patients in "
+          + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0 + " seconds");
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+  
+  private void createPeriods()
+  {
+    try {
+      URL url = new URL("http://localhost:8080/microservices/api/periods");
+      
+      long startTime = System.nanoTime();
+      for (int i = 0; i < NR_OF_PERIODS; i++) {
+        Period p = createNewPeriod();
+        ObjectMapper mapper = new ObjectMapper();
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        
+        try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+          String s = mapper.writeValueAsString(p);
+          System.out.println("s = " + s);
+          wr.write(s.getBytes());
+        }
+        int responseCode = connection.getResponseCode();
+        String responseMessage = connection.getResponseMessage();
+        InputStream errorStream = connection.getErrorStream();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(errorStream))) {
+          String buffer;
+          String error = "";
+          while ((buffer = reader.readLine()) != null) {
+            error += buffer;
+          }
+          System.out.println("error = " + error);
+        }
+        //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
+        
+      }
+      long endTime = System.nanoTime();
+      long elapsed = endTime - startTime;
+      System.out.println(
+        "Created " + NR_OF_PERIODS + " Periods in "
+          + TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0 + " seconds");
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -371,12 +418,29 @@ public class ServiceClient
     return address;
   }
   
+  private Period createNewPeriod()
+  {
+    Period period = new Period();
+    period.setStart(generateRandomTime(LocalDateTime.now().getYear() - 20, LocalDateTime.now().getYear()));
+    Random rnd = new Random();
+    double roll = rnd.nextDouble();
+    if (roll < 1.0) {
+      LocalDateTime end = period.getStart().plusHours(rnd.nextInt(1000));
+      if (end.isAfter(LocalDateTime.now())) {
+        end = LocalDateTime.now().minusHours(1);
+        period.setEnd(end);
+      } else {
+        period.setEnd(end);
+      }
+    }
+    return period;
+  }
+  
   private EpisodeOfCare createNewEpisodeOfCare(int id)
   {
     EpisodeOfCare episodeOfCare = new EpisodeOfCare();
     episodeOfCare.setIdentifier("" + id);
-    Period p = new Period();
-    p.setStart(generateRandomTime(LocalDateTime.now().getYear()-20, LocalDateTime.now().getYear()));
+    Period p = null;
     Random rnd = new Random();
     double roll = rnd.nextDouble();
     if (roll < 0.2) {
@@ -384,14 +448,18 @@ public class ServiceClient
       for (Code code : status) {
         if (code.code.equals("finished")) {
           episodeOfCare.setStatus(code.id);
+          p = getPeriod(true);
         }
       }
     } else {
       episodeOfCare.setStatus(status.get(new Random().nextInt(status.size() - 1)).id);
     }
+    if (p == null) {
+      p = getPeriod(false);
+    }
+    episodeOfCare.setPeriod(p.getIdentifier().toString());
     
     episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).id);
-    
     
     return episodeOfCare;
   }
@@ -416,15 +484,18 @@ public class ServiceClient
     LocalDate randomBirthDate = LocalDate.ofEpochDay(randomDay);
     return randomBirthDate;
   }
-  private LocalDateTime generateRandomTime(int startYear, int endYear)
+  
+  private LocalDateTime generateRandomTime(
+    int startYear,
+    int endYear)
   {
     Random random = new Random();
     int minDay = (int) LocalDate.of(startYear, 1, 1).toEpochDay();
     int maxDay = (int) LocalDate.of(endYear, 1, 1).toEpochDay();
     long randomDay = minDay + random.nextInt(maxDay - minDay);
     
-    LocalDate randomDate = LocalDate.ofEpochDay(randomDay);
-    return randomDate ;
+    LocalDateTime randomDate = LocalDateTime.ofEpochSecond(randomDay * 60 * 60, 0, ZoneOffset.UTC);
+    return randomDate;
   }
   
   private static void getPatients()
@@ -492,6 +563,53 @@ public class ServiceClient
     }
   }
   
+  private Period getPeriod(boolean hasEnd)
+  {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/periods");
+    
+    try {
+      HttpResponse response = HttpClientBuilder.create().build().execute(request);
+      
+      HttpEntity entity = response.getEntity();
+      String s = EntityUtils.toString(entity);
+      ObjectMapper mapper = new ObjectMapper();
+      Period[] periods = mapper.readValue(s, Period[].class);
+      return getRandomPeriodWithEnd(periods);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
+  
+  private Period getRandomPeriodWithEnd(Period[] periods)
+  {
+    boolean hasEnd = false;
+    for (Period period : periods) {
+      if (period.getEnd() != null) {
+        hasEnd = true;
+        break;
+      }
+    }
+    if (!hasEnd) {
+      return null;
+    }
+    Random rnd = new Random();
+    Period period = periods[rnd.nextInt(periods.length)];
+    if (period.getEnd() != null) {
+      return period;
+    } else {
+      return getRandomPeriodWithEnd(periods);
+    }
+  }
+  
+  class JsonTime {
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+  }
   class Code
   {
     String id;
