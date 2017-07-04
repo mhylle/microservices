@@ -1,28 +1,34 @@
 package info.mhylle.playground.microservices;
 
-import java.io.*;
-import java.net.*;
-import java.time.*;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.http.*;
-import org.apache.http.client.methods.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import info.mhylle.playground.microservices.data.Code;
+import info.mhylle.playground.microservices.data.Values;
+import info.mhylle.playground.microservices.model.*;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import info.mhylle.playground.microservices.data.*;
-import info.mhylle.playground.microservices.model.*;
-import info.mhylle.playground.microservices.model.Period;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 0;
+  private static final int NR_OF_PATIENTS = 100000;
   private static final int NR_OF_ADDRESSES = 0;
   private static final int NR_OF_EPISODESOFCARE = 0;
   private static final int NR_OF_ENCOUNTERS = 0;
-  private static final int NR_OF_PERIODS = 1;
+  private static final int NR_OF_PERIODS = 0;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
@@ -31,7 +37,7 @@ public class ServiceClient {
   private List<String> streets;
   private List<Code> status;
   private List<Code> sksCodes;
-//  private boolean generatePatients = true;
+  //  private boolean generatePatients = true;
   private boolean generateEpisodesOfCare = true;
   private boolean generateEncounters = true;
 
@@ -111,10 +117,8 @@ public class ServiceClient {
     encRunner.start();
   }
 
-  private void readData(
-      List<String> list,
-      String type) {
-  
+  private void readData(List<String> list, String type) {
+
     try {
       InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -123,7 +127,7 @@ public class ServiceClient {
       while ((data = reader.readLine()) != null) {
         json.append(data);
       }
-    
+
       ObjectMapper mapper = new ObjectMapper();
       Values[] keys = mapper.readValue(json.toString(), Values[].class);
       for (Values values : keys) {
@@ -135,7 +139,7 @@ public class ServiceClient {
   }
 
   private void readCode(List<Code> list, String type) {
-  
+
     try {
       InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -157,6 +161,23 @@ public class ServiceClient {
 
       long startTime = System.nanoTime();
       for (int i = 0; i < NR_OF_PATIENTS; i++) {
+        try {
+          Thread.sleep(10);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+        if (i%1000 == 0) {
+          long endTime = System.nanoTime();
+          long elapsed = endTime - startTime;
+
+          double v = TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0;
+          if (i >0) {
+            System.out.println(
+                "Created " + i + " patients in "
+                    + v + " seconds (average=" + TimeUnit.MILLISECONDS.convert((elapsed /i), TimeUnit.NANOSECONDS) / 1000.0);
+          }
+
+        }
         createPatient();
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
 
@@ -203,8 +224,6 @@ public class ServiceClient {
         Period p = createNewPeriod();
         ObjectMapper mapper = new ObjectMapper();
         mapper.findAndRegisterModules();
-//        mapper.registerModule(new JavaTimeModule());
-//        mapper.disable(SerializationConfig.Feature.WRITE_DATES_AS_TIMESTAMPS);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/json");
@@ -214,22 +233,21 @@ public class ServiceClient {
 
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
-          System.out.println("s = " + s);
           wr.write(s.getBytes());
         }
         connection.getResponseCode();
         connection.getResponseMessage();
         InputStream errorStream = connection.getErrorStream();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(errorStream))) {
-          String buffer;
-          StringBuilder input = new StringBuilder();
-          while ((buffer = reader.readLine()) != null) {
-            input.append(buffer);
+        if (errorStream != null) {
+          try (BufferedReader reader = new BufferedReader(new InputStreamReader(errorStream))) {
+            String buffer;
+            StringBuilder input = new StringBuilder();
+            while ((buffer = reader.readLine()) != null) {
+              input.append(buffer);
+            }
+            System.out.println("input = " + input);
           }
-          System.out.println("input = " + input);
         }
-        //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
-
       }
       long endTime = System.nanoTime();
       long elapsed = endTime - startTime;
@@ -253,6 +271,11 @@ public class ServiceClient {
       }
 
       for (int i = 0; i < NR_OF_ADDRESSES; i++) {
+        try {
+          Thread.sleep(5);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
         createAddress(url, nextAddrId, i);
       }
       long endTime = System.nanoTime();
@@ -268,14 +291,12 @@ public class ServiceClient {
   private void createAddress(final URL url, final int nextAddrId, final int i) throws IOException {
     Runnable runnable = () -> {
       try {
-        try {
-          Thread.sleep(25);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+
         Address p = createNewAddress(nextAddrId + i);
         ObjectMapper mapper = new ObjectMapper();
+
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
         connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/json");
         connection.setRequestMethod("POST");
@@ -333,8 +354,6 @@ public class ServiceClient {
 
   private void createEncounters() {
     try {
-
-
       for (int i = 0; i < NR_OF_ENCOUNTERS; i++) {
         createEncounter(i);
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
