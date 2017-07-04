@@ -1,34 +1,28 @@
 package info.mhylle.playground.microservices;
 
-import info.mhylle.playground.microservices.model.*;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.net.*;
+import java.time.*;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.*;
+import org.apache.http.client.methods.*;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import info.mhylle.playground.microservices.data.*;
+import info.mhylle.playground.microservices.model.*;
+import info.mhylle.playground.microservices.model.Period;
+
 public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 50000;
-  private static final int NR_OF_ADDRESSES = 50000;
+  private static final int NR_OF_PATIENTS = 0;
+  private static final int NR_OF_ADDRESSES = 0;
   private static final int NR_OF_EPISODESOFCARE = 0;
   private static final int NR_OF_ENCOUNTERS = 0;
-  private static final int NR_OF_PERIODS = 10000;
+  private static final int NR_OF_PERIODS = 1;
   private List<String> firstnames;
   private List<String> lastnames;
   private List<String> cities;
@@ -37,7 +31,7 @@ public class ServiceClient {
   private List<String> streets;
   private List<Code> status;
   private List<Code> sksCodes;
-  private boolean generatePatients = true;
+//  private boolean generatePatients = true;
   private boolean generateEpisodesOfCare = true;
   private boolean generateEncounters = true;
 
@@ -59,12 +53,12 @@ public class ServiceClient {
     int addressCount = getAddressCount();
     System.out.println("patientCount = " + patientCount);
     System.out.println("addressCount = " + addressCount);
-    readData(firstnames, "firstnames", "firstname");
-    readData(lastnames, "lastnames", "lastname");
-    readData(cities, "cities", "city");
-    readData(states, "states", "state");
-    readData(streetnumbers, "streetnumbers", "streetnumber");
-    readData(streets, "streets", "streetname");
+    readData(firstnames, "firstnames");
+    readData(lastnames, "lastnames");
+    readData(cities, "cities");
+    readData(states, "states");
+    readData(streetnumbers, "streetnumbers");
+    readData(streets, "streets");
     readCode(status, "status");
     readCode(sksCodes, "skscodes");
     createPeriods();
@@ -77,7 +71,7 @@ public class ServiceClient {
 //    createEpisodesOfCare();
 //    createEncounters();
 //
-    startGenerators();
+//    startGenerators();
   }
 
   private void startGenerators() {
@@ -119,9 +113,8 @@ public class ServiceClient {
 
   private void readData(
       List<String> list,
-      String type,
-      String attribute) {
-
+      String type) {
+  
     try {
       InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -130,20 +123,19 @@ public class ServiceClient {
       while ((data = reader.readLine()) != null) {
         json.append(data);
       }
-      JSONArray array = new JSONArray(json.toString());
-      for (int i = 0; i < array.length(); i++) {
-        JSONObject o = (JSONObject) array.get(i);
-
-        String state = (String) o.get(attribute);
-        list.add(state);
+    
+      ObjectMapper mapper = new ObjectMapper();
+      Values[] keys = mapper.readValue(json.toString(), Values[].class);
+      for (Values values : keys) {
+        list.add(values.getKey());
       }
-    } catch (JSONException | IOException e) {
+    } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
   private void readCode(List<Code> list, String type) {
-
+  
     try {
       InputStream in = new FileInputStream(".\\resources\\" + type + ".json");
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -152,15 +144,10 @@ public class ServiceClient {
       while ((data = reader.readLine()) != null) {
         json.append(data);
       }
-      JSONArray array = new JSONArray(json.toString());
-      for (int i = 0; i < array.length(); i++) {
-        JSONObject o = (JSONObject) array.get(i);
-
-        String id = (String) o.get("id");
-        String code = (String) o.get("code");
-        list.add(new Code(id, code));
-      }
-    } catch (JSONException | IOException e) {
+      ObjectMapper mapper = new ObjectMapper();
+      Code[] strings = mapper.readValue(json.toString(), Code[].class);
+      Collections.addAll(list, strings);
+    } catch (IOException e) {
       e.printStackTrace();
     }
   }
@@ -215,6 +202,9 @@ public class ServiceClient {
       for (int i = 0; i < NR_OF_PERIODS; i++) {
         Period p = createNewPeriod();
         ObjectMapper mapper = new ObjectMapper();
+        mapper.findAndRegisterModules();
+//        mapper.registerModule(new JavaTimeModule());
+//        mapper.disable(SerializationConfig.Feature.WRITE_DATES_AS_TIMESTAMPS);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/json");
@@ -224,6 +214,7 @@ public class ServiceClient {
 
         try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
           String s = mapper.writeValueAsString(p);
+          System.out.println("s = " + s);
           wr.write(s.getBytes());
         }
         connection.getResponseCode();
@@ -509,19 +500,19 @@ public class ServiceClient {
     if (roll < 0.2) {
       // 20 percent of all episodes of care are closed..
       for (Code code : status) {
-        if (code.code.equals("finished")) {
-          episodeOfCare.setStatus(code.id);
+        if (code.getCode().equals("finished")) {
+          episodeOfCare.setStatus(code.getId());
           p = getPeriod();
         }
       }
     } else {
-      episodeOfCare.setStatus(status.get(new Random().nextInt(status.size() - 1)).id);
+      episodeOfCare.setStatus(status.get(new Random().nextInt(status.size() - 1)).getId());
     }
     if (p == null) {
       p = getPeriod();
     }
     episodeOfCare.setPeriod(p != null ? p.getIdentifier().toString() : null);
-    episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).id);
+    episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).getId());
 
     return episodeOfCare;
   }
@@ -529,8 +520,8 @@ public class ServiceClient {
   private Encounter createNewEncounter(int id) {
     Encounter encounter = new Encounter();
     encounter.setIdentifier("" + id);
-    encounter.setStatus(status.get(new Random().nextInt(status.size() - 1)).id);
-    encounter.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).id);
+    encounter.setStatus(status.get(new Random().nextInt(status.size() - 1)).getId());
+    encounter.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).getId());
 
     return encounter;
   }
@@ -648,19 +639,6 @@ public class ServiceClient {
       return period;
     } else {
       return getRandomPeriodWithEnd(periods);
-    }
-  }
-
-  class Code {
-    String id;
-    String code;
-
-    Code(
-        String id,
-        String code) {
-
-      this.id = id;
-      this.code = code;
     }
   }
 }

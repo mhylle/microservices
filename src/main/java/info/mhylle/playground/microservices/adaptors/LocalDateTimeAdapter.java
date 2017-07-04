@@ -14,8 +14,7 @@ public class LocalDateTimeAdapter extends XmlAdapter<String, LocalDateTime>
     System.out.println("dateString = " + dateString);
     try {
       DateTimeFormatter dtf = DateTimeFormatter.ISO_DATE_TIME;
-      LocalDateTime parse1 = LocalDateTime.parse(dateString, dtf);
-      return parse1;
+      return LocalDateTime.parse(dateString, dtf);
     } catch (Exception e) {
       e.printStackTrace();
     }

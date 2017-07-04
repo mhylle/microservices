@@ -3,10 +3,9 @@ package info.mhylle.playground.microservices.model;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import javax.xml.bind.annotation.*;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import javax.xml.bind.annotation.XmlRootElement;
 
-import info.mhylle.playground.microservices.adaptors.LocalDateTimeAdapter;
+import com.fasterxml.jackson.annotation.*;
 
 @XmlRootElement
 public class Period {
@@ -22,8 +21,8 @@ public class Period {
     return identifier;
   }
   
-  @XmlElement(name = "start")
-  @XmlJavaTypeAdapter(LocalDateTimeAdapter.class)
+  @JsonProperty("start")
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSXXXX")
   public LocalDateTime getStart() {
     return start;
   }
@@ -32,8 +31,8 @@ public class Period {
     this.start = start;
   }
   
-  @XmlElement(name = "end")
-  @XmlJavaTypeAdapter(LocalDateTimeAdapter.class)
+  @JsonProperty("end")
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSXXXX")
   public LocalDateTime getEnd() {
     return end;
   }

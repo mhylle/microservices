@@ -12,7 +12,7 @@ import info.mhylle.playground.microservices.model.Period;
 public class Periods {
   @GET
   @Produces(MediaType.APPLICATION_JSON)
-  public List<Period> getAddresses() {
+  public List<Period> getPeriods() {
     return Repository.getInstance().getPeriods();
   }
 
@@ -42,7 +42,6 @@ public class Periods {
   @Consumes(MediaType.APPLICATION_JSON)
   public void addPeriod(Period period) {
     System.out.println("period = ");
-    
     Repository.getInstance().addPeriod(period);
   }
 }
