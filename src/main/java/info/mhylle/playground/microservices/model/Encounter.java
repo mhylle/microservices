@@ -1,7 +1,8 @@
 package info.mhylle.playground.microservices.model;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import java.util.UUID;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Encounter {
@@ -10,7 +11,9 @@ public class Encounter {
   private String responsibleUnit;
   private String status;
   private int priority;
-
+  private String patient;
+  private String episodeOfCare;
+  
   public Encounter() {
     id = UUID.randomUUID();
   }
@@ -57,5 +60,25 @@ public class Encounter {
 
   public void setPriority(int priority) {
     this.priority = priority;
+  }
+  
+  public String getPatient()
+  {
+    return patient;
+  }
+  
+  public void setPatient(String patient)
+  {
+    this.patient = patient;
+  }
+  
+  public String getEpisodeOfCare()
+  {
+    return episodeOfCare;
+  }
+  
+  public void setEpisodeOfCare(String episodeOfCare)
+  {
+    this.episodeOfCare = episodeOfCare;
   }
 }

@@ -18,7 +18,7 @@ import info.mhylle.playground.microservices.model.*;
 import info.mhylle.playground.microservices.model.Period;
 
 public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 10000;
+  private static final int NR_OF_PATIENTS = 90000;
   private static final int NR_OF_ADDRESSES = 0;
   private static final int NR_OF_EPISODESOFCARE = 0;
   private static final int NR_OF_ENCOUNTERS = 0;
@@ -75,8 +75,21 @@ public class ServiceClient {
 //    createEncounters();
 //
 //    startGenerators();
+    
+    generateRandomData();
   }
-
+  
+  private void generateRandomData()
+  {
+    int patientCount = getPatientCount();
+    Random rnd = new Random();
+    Patient patient = getPatient(rnd.nextInt(patientCount));
+    EpisodeOfCare episodeOfCare = generateRandomEpisodeOfCare(patient);
+    Encounter encounter = generateRandomEncounter(patient, episodeOfCare);
+    generateRandomProcedure(patient, encounter);
+  }
+  
+  
   private void startGenerators() {
     Runnable episodeOfCareGenerator = () -> {
       int counter = 0;
@@ -115,12 +128,48 @@ public class ServiceClient {
   }
 
   
-  private void generateRandomEpisodeOfCare() {
-    int patientCount = getPatientCount();
-  
-    Patient patient = getPatient(new Random().nextInt(patientCount));
-    
+  private EpisodeOfCare generateRandomEpisodeOfCare(Patient patient) {
+    Random rnd = new Random();
+    EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+    String period = getPeriod().getIdentifier().toString();
+    episodeOfCare.setPeriod(period);
+    episodeOfCare.setStatus(status.get(rnd.nextInt(status.size())).getId());
+    episodeOfCare.setDiagnosis(getRandomCondition().getId().toString());
+    episodeOfCare.setPatient(patient.getIdentifier());
+    episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).getId());
+    return episodeOfCare;
   }
+  
+  private Encounter generateRandomEncounter(Patient patient, EpisodeOfCare episodeOfCare)
+  {
+    Random random = new Random();
+    Encounter encounter = new Encounter();
+    encounter.setPatient(patient.getIdentifier());
+    if (random.nextDouble() < 0.7) {
+      encounter.setResponsibleUnit(episodeOfCare.getResponsibleUnit());
+      encounter.setEpisodeOfCare(episodeOfCare.getId().toString());
+      String period = episodeOfCare.getPeriod();
+      // TODO set random period that is inside the EOC period..
+//      encounter.setPeriod(period);
+    }
+    encounter.setStatus(status.get(random.nextInt(status.size())).getId());
+    
+    return encounter;
+  }
+  
+  
+  private void generateRandomProcedure(Patient patient,Encounter encounter)
+  {
+  
+  }
+  
+  
+  private Condition getRandomCondition()
+  {
+    int conditionCount = getPatientCount();
+    return getCondition(new Random().nextInt(conditionCount));
+  }
+  
   private void readData(List<String> list, String type) {
 
     try {
@@ -528,6 +577,12 @@ public class ServiceClient {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients/amount");
     return retrieveAmount(request);
   }
+  
+  private int getConditionCount()
+  {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/conditions/amount");
+    return retrieveAmount(request);
+  }
 
   private Address createNewAddress(int id) {
     Address address = new Address();
@@ -614,7 +669,7 @@ public class ServiceClient {
     encounter.setIdentifier("" + id);
     encounter.setStatus(status.get(new Random().nextInt(status.size() - 1)).getId());
     encounter.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).getId());
-
+    
     return encounter;
   }
 
