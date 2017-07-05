@@ -1,6 +1,6 @@
 package info.mhylle.playground.microservices.data;
 
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.*;
 import java.util.stream.Stream;
 
@@ -25,7 +25,7 @@ public class SksImporter
   {
     json = "[";
     counter = 1;
-    fileName = "resources/sksdump.txt";
+    fileName = "resources/skssickdump.txt";
     jsonFile="resources/sksSickCodes.json";
     try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
       
@@ -47,6 +47,9 @@ public class SksImporter
   private void createJsonElement(String s) {
     String[] split = s.split("\t");
     try {
+      if ("".equals(split[0])) {
+        return;
+      }
       json += "{\"id\": \"" + counter++ + "\", \"code\": \"" + split[0] + "\",\"text\": \"" + split[1] + "\"},";
     } catch (Exception e) {
       e.printStackTrace();
