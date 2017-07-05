@@ -4,6 +4,7 @@ public class Code
 {
   private String id;
   private String code;
+  private String text;
   
   Code()  {
   }
@@ -26,5 +27,15 @@ public class Code
   public void setCode(String code)
   {
     this.code = code;
+  }
+  
+  public String getText()
+  {
+    return text;
+  }
+  
+  public void setText(String text)
+  {
+    this.text = text;
   }
 }

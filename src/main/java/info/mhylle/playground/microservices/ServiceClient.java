@@ -1,30 +1,24 @@
 package info.mhylle.playground.microservices;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import info.mhylle.playground.microservices.data.Code;
-import info.mhylle.playground.microservices.data.Values;
-import info.mhylle.playground.microservices.model.*;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
+import java.io.*;
+import java.net.*;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.http.*;
+import org.apache.http.client.methods.*;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import info.mhylle.playground.microservices.data.*;
+import info.mhylle.playground.microservices.model.*;
+import info.mhylle.playground.microservices.model.Period;
 
 public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 0;
+  private static final int NR_OF_PATIENTS = 10000;
   private static final int NR_OF_ADDRESSES = 0;
   private static final int NR_OF_EPISODESOFCARE = 0;
   private static final int NR_OF_ENCOUNTERS = 0;
@@ -37,6 +31,7 @@ public class ServiceClient {
   private List<String> streets;
   private List<Code> status;
   private List<Code> sksCodes;
+  private List<Code> sksSickCodes;
   //  private boolean generatePatients = true;
   private boolean generateEpisodesOfCare = true;
   private boolean generateEncounters = true;
@@ -55,6 +50,7 @@ public class ServiceClient {
     streets = new ArrayList<>();
     status = new ArrayList<>();
     sksCodes = new ArrayList<>();
+    sksSickCodes = new ArrayList<>();
     int patientCount = getPatientCount();
     int addressCount = getAddressCount();
     System.out.println("patientCount = " + patientCount);
@@ -67,6 +63,7 @@ public class ServiceClient {
     readData(streets, "streets");
     readCode(status, "status");
     readCode(sksCodes, "skscodes");
+    readCode(sksSickCodes, "sksSickCodes");
     createPeriods();
     createAddresses();
     long startTime = System.nanoTime();
@@ -77,7 +74,7 @@ public class ServiceClient {
 //    createEpisodesOfCare();
 //    createEncounters();
 //
-    startGenerators();
+//    startGenerators();
   }
 
   private void startGenerators() {
@@ -316,6 +313,35 @@ public class ServiceClient {
     Thread runner = new Thread(runnable);
     runner.start();
   }
+  
+  private void createCondition(final URL url, final int nextAddrId, final int i) throws IOException {
+    Runnable runnable = () -> {
+      try {
+
+        Condition c = createNewCondition(nextAddrId + i);
+        ObjectMapper mapper = new ObjectMapper();
+
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+
+        try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+          String s = mapper.writeValueAsString(c);
+          wr.write(s.getBytes());
+        }
+        connection.getResponseCode();
+        connection.getResponseMessage();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    };
+    Thread runner = new Thread(runnable);
+    runner.start();
+  }
 
   private void createEpisodesOfCare() {
     try {
@@ -491,6 +517,25 @@ public class ServiceClient {
     address.setIdentifier("" + id);
 
     return address;
+  }
+  private Condition createNewCondition(int id) {
+    Condition condition = new Condition();
+    condition.setIdentifier("" + id);
+//    condition.setCode();
+//    address.setCity(cities.get(new Random().nextInt(cities.size() - 1)));
+//    String street = streets.get(new Random().nextInt(streetnumbers.size() - 1));
+//    String line = String.format("%s %s", street, streetnumbers.get(new Random().nextInt(streetnumbers.size() - 1)));
+//
+//    address.setLine(line);
+//    int postalCode = new Random().nextInt(9999);
+//    if (postalCode < 999) {
+//      postalCode += 1000;
+//    }
+//    address.setPostalCode("" + postalCode);
+//    address.setState(states.get(new Random().nextInt(states.size() - 1)));
+//    address.setIdentifier("" + id);
+
+    return condition;
   }
 
   private Period createNewPeriod() {

@@ -8,9 +8,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class EpisodeOfCare {
   private UUID id;
   private String identifier;
-  private String responsibleUnit;
   private String status;
+  private String diagnosis;
+  private String responsibleUnit;
   private String period;
+  private String patient;
 
   public EpisodeOfCare() {
     id = UUID.randomUUID();
@@ -60,5 +62,25 @@ public class EpisodeOfCare {
   public void setPeriod(String period)
   {
     this.period = period;
+  }
+  
+  public String getPatient()
+  {
+    return patient;
+  }
+  
+  public void setPatient(String patient)
+  {
+    this.patient = patient;
+  }
+  
+  public String getDiagnosis()
+  {
+    return diagnosis;
+  }
+  
+  public void setDiagnosis(String diagnosis)
+  {
+    this.diagnosis = diagnosis;
   }
 }
