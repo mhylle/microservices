@@ -24,7 +24,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class ServiceClient {
-  private static final int NR_OF_PATIENTS = 100000;
+  private static final int NR_OF_PATIENTS = 0;
   private static final int NR_OF_ADDRESSES = 0;
   private static final int NR_OF_EPISODESOFCARE = 0;
   private static final int NR_OF_ENCOUNTERS = 0;
@@ -77,7 +77,7 @@ public class ServiceClient {
 //    createEpisodesOfCare();
 //    createEncounters();
 //
-//    startGenerators();
+    startGenerators();
   }
 
   private void startGenerators() {
