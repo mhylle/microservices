@@ -114,6 +114,13 @@ public class ServiceClient {
     encRunner.start();
   }
 
+  
+  private void generateRandomEpisodeOfCare() {
+    int patientCount = getPatientCount();
+  
+    Patient patient = getPatient(new Random().nextInt(patientCount));
+    
+  }
   private void readData(List<String> list, String type) {
 
     try {
@@ -451,9 +458,30 @@ public class ServiceClient {
     return p;
   }
 
+  private Patient getPatient(int i1) {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients/" + i1);
+    return retrieveEntity(request, Patient.class);
+  }
   private Address getAddress(int i1) {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/" + i1);
-
+    return retrieveEntity(request, Address.class);
+  }
+  private EpisodeOfCare getEpisodeOfCare(int i1) {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/episodesofcare/" + i1);
+    return retrieveEntity(request, EpisodeOfCare.class);
+  }
+  
+  private Encounter getEncounter(int i1) {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/encounters/" + i1);
+    return retrieveEntity(request, Encounter.class);
+  }
+  private Condition getCondition(int i1) {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/conditions/" + i1);
+    return retrieveEntity(request, Condition.class);
+  }
+  
+  private <T> T retrieveEntity(HttpUriRequest request,Class<T> clazz)
+  {
     try {
       HttpResponse response = HttpClientBuilder.create().build().execute(request);
       HttpEntity entity = response.getEntity();
@@ -462,7 +490,7 @@ public class ServiceClient {
         ObjectMapper mapper;
         s = EntityUtils.toString(entity);
         mapper = new ObjectMapper();
-        return mapper.readValue(s, Address.class);
+        return mapper.readValue(s, clazz);
       } else {
         return null;
       }
@@ -471,7 +499,7 @@ public class ServiceClient {
     }
     return null;
   }
-
+  
   private int getAddressCount() {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/amount");
     return retrieveAmount(request);
