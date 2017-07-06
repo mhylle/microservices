@@ -1,21 +1,24 @@
 package info.mhylle.playground.microservices;
 
-import java.io.*;
-import java.net.*;
-import java.time.*;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.http.*;
-import org.apache.http.client.methods.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import info.mhylle.playground.microservices.data.Code;
+import info.mhylle.playground.microservices.data.Values;
+import info.mhylle.playground.microservices.model.*;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import info.mhylle.playground.microservices.data.*;
-import info.mhylle.playground.microservices.model.*;
-import info.mhylle.playground.microservices.model.Period;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ServiceClient {
   private static final int NR_OF_PATIENTS = 90000;
@@ -23,11 +26,11 @@ public class ServiceClient {
   private static final int NR_OF_EPISODESOFCARE = 0;
   private static final int NR_OF_ENCOUNTERS = 0;
   private static final int NR_OF_PERIODS = 0;
-  private List<String> firstnames;
-  private List<String> lastnames;
+  private List<String> firstNames;
+  private List<String> lastNames;
   private List<String> cities;
   private List<String> states;
-  private List<String> streetnumbers;
+  private List<String> streetNumbers;
   private List<String> streets;
   private List<Code> status;
   private List<Code> sksCodes;
@@ -42,11 +45,11 @@ public class ServiceClient {
   }
 
   private void start() {
-    firstnames = new ArrayList<>();
-    lastnames = new ArrayList<>();
+    firstNames = new ArrayList<>();
+    lastNames = new ArrayList<>();
     cities = new ArrayList<>();
     states = new ArrayList<>();
-    streetnumbers = new ArrayList<>();
+    streetNumbers = new ArrayList<>();
     streets = new ArrayList<>();
     status = new ArrayList<>();
     sksCodes = new ArrayList<>();
@@ -55,11 +58,11 @@ public class ServiceClient {
     int addressCount = getAddressCount();
     System.out.println("patientCount = " + patientCount);
     System.out.println("addressCount = " + addressCount);
-    readData(firstnames, "firstnames");
-    readData(lastnames, "lastnames");
+    readData(firstNames, "firstNames");
+    readData(lastNames, "lastNames");
     readData(cities, "cities");
     readData(states, "states");
-    readData(streetnumbers, "streetnumbers");
+    readData(streetNumbers, "streetNumbers");
     readData(streets, "streets");
     readCode(status, "status");
     readCode(sksCodes, "skscodes");
@@ -75,21 +78,20 @@ public class ServiceClient {
 //    createEncounters();
 //
 //    startGenerators();
-    
+
     generateRandomData();
   }
-  
-  private void generateRandomData()
-  {
+
+  private void generateRandomData() {
     int patientCount = getPatientCount();
     Random rnd = new Random();
     Patient patient = getPatient(rnd.nextInt(patientCount));
     EpisodeOfCare episodeOfCare = generateRandomEpisodeOfCare(patient);
-    Encounter encounter = generateRandomEncounter(patient, episodeOfCare);
-    generateRandomProcedure(patient, encounter);
+    generateRandomEncounter(patient, episodeOfCare);
+//    generateRandomProcedure(patient, encounter);
   }
-  
-  
+
+  @SuppressWarnings("unused")
   private void startGenerators() {
     Runnable episodeOfCareGenerator = () -> {
       int counter = 0;
@@ -127,49 +129,81 @@ public class ServiceClient {
     encRunner.start();
   }
 
-  
+
   private EpisodeOfCare generateRandomEpisodeOfCare(Patient patient) {
     Random rnd = new Random();
     EpisodeOfCare episodeOfCare = new EpisodeOfCare();
-    String period = getPeriod().getIdentifier().toString();
-    episodeOfCare.setPeriod(period);
+    Period p = getPeriod();
+    if (p != null) {
+      UUID periodIdentifier = p.getIdentifier();
+      if (periodIdentifier != null) {
+        String period = periodIdentifier.toString();
+        episodeOfCare.setPeriod(period);
+      }
+    }
     episodeOfCare.setStatus(status.get(rnd.nextInt(status.size())).getId());
     episodeOfCare.setDiagnosis(getRandomCondition().getId().toString());
     episodeOfCare.setPatient(patient.getIdentifier());
     episodeOfCare.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).getId());
     return episodeOfCare;
   }
-  
-  private Encounter generateRandomEncounter(Patient patient, EpisodeOfCare episodeOfCare)
-  {
+
+  @SuppressWarnings("UnusedReturnValue")
+  private Encounter generateRandomEncounter(Patient patient, EpisodeOfCare episodeOfCare) {
     Random random = new Random();
     Encounter encounter = new Encounter();
     encounter.setPatient(patient.getIdentifier());
     if (random.nextDouble() < 0.7) {
       encounter.setResponsibleUnit(episodeOfCare.getResponsibleUnit());
       encounter.setEpisodeOfCare(episodeOfCare.getId().toString());
-      String period = episodeOfCare.getPeriod();
-      // TODO set random period that is inside the EOC period..
-//      encounter.setPeriod(period);
+      String id = episodeOfCare.getPeriod();
+      Period eocPeriod = getPeriod(id);
+      if (eocPeriod != null) {
+        LocalDateTime start = eocPeriod.getStart();
+        LocalDateTime end = eocPeriod.getEnd();
+        if (end != null) {
+          long el = end.toEpochSecond(ZoneOffset.UTC);
+          long es = start.toEpochSecond(ZoneOffset.UTC);
+          long difference = el - es;
+          Random rnd = new Random();
+          int v = (int) Math.floor(rnd.nextDouble() * difference);
+          int i = rnd.nextInt(v);
+          long startTime = es + i;
+          LocalDateTime encounterStartTime = LocalDateTime.ofEpochSecond(startTime, 0, ZoneOffset.UTC);
+
+          long encStartTime = encounterStartTime.toEpochSecond(ZoneOffset.UTC);
+          long l = el - encStartTime;
+          LocalDateTime encounterEndTime = LocalDateTime.ofEpochSecond(l, 0, ZoneOffset.UTC);
+          Period p = new Period();
+          p.setStart(encounterStartTime);
+          p.setEnd(encounterEndTime);
+          saveEntity(p, Period.class);
+        } else {
+          LocalDateTime startTime = start.plusDays(random.nextInt(30));
+          Period p = new Period();
+          p.setStart(startTime);
+          // generate random period after eoc start
+        }
+      } else {
+        LocalDateTime localDateTime = generateRandomTime(LocalDateTime.now().getYear() - 30, LocalDateTime.now().getYear());
+        Period p = new Period();
+        p.setStart(localDateTime);
+
+        // generate random period
+      }
+
+      encounter.setStatus(status.get(random.nextInt(status.size())).getId());
+      encounter.setDiagnosis(sksSickCodes.get(random.nextInt(sksSickCodes.size())).getId());
     }
-    encounter.setStatus(status.get(random.nextInt(status.size())).getId());
-    
     return encounter;
+
   }
-  
-  
-  private void generateRandomProcedure(Patient patient,Encounter encounter)
-  {
-  
-  }
-  
-  
-  private Condition getRandomCondition()
-  {
+
+  private Condition getRandomCondition() {
     int conditionCount = getPatientCount();
     return getCondition(new Random().nextInt(conditionCount));
   }
-  
+
   private void readData(List<String> list, String type) {
 
     try {
@@ -219,15 +253,15 @@ public class ServiceClient {
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
-        if (i%1000 == 0) {
+        if (i % 1000 == 0) {
           long endTime = System.nanoTime();
           long elapsed = endTime - startTime;
 
           double v = TimeUnit.MILLISECONDS.convert(elapsed, TimeUnit.NANOSECONDS) / 1000.0;
-          if (i >0) {
+          if (i > 0) {
             System.out.println(
                 "Created " + i + " patients in "
-                    + v + " seconds (average=" + TimeUnit.MILLISECONDS.convert((elapsed /i), TimeUnit.NANOSECONDS) / 1000.0);
+                    + v + " seconds (average=" + TimeUnit.MILLISECONDS.convert((elapsed / i), TimeUnit.NANOSECONDS) / 1000.0);
           }
 
         }
@@ -268,11 +302,34 @@ public class ServiceClient {
     }
   }
 
+  private <T> void saveEntity(T entity, Class<T> clazz) {
+    try {
+      URL url = new URL("http://localhost:8080/microservices/api/" + clazz.getSimpleName());
+      ObjectMapper mapper = new ObjectMapper();
+      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+      connection.setDoOutput(true);
+      connection.setRequestProperty("Content-Type", "application/json");
+      connection.setRequestMethod("POST");
+      connection.setConnectTimeout(5000);
+      connection.setReadTimeout(5000);
+
+      try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+        String s = mapper.writeValueAsString(entity);
+        wr.write(s.getBytes());
+      }
+      connection.getResponseCode();
+      connection.getResponseMessage();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
   private void createPeriods() {
     try {
       long startTime = System.nanoTime();
       URL url = new URL("http://localhost:8080/microservices/api/periods");
 
+      //noinspection ConstantConditions
       for (int i = 0; i < NR_OF_PERIODS; i++) {
         Period p = createNewPeriod();
         ObjectMapper mapper = new ObjectMapper();
@@ -323,6 +380,7 @@ public class ServiceClient {
         nextAddrId = Integer.parseInt(nextAddressIdentifier);
       }
 
+      //noinspection ConstantConditions
       for (int i = 0; i < NR_OF_ADDRESSES; i++) {
         try {
           Thread.sleep(5);
@@ -369,7 +427,8 @@ public class ServiceClient {
     Thread runner = new Thread(runnable);
     runner.start();
   }
-  
+
+  @SuppressWarnings("unused")
   private void createCondition(final URL url, final int nextAddrId, final int i) throws IOException {
     Runnable runnable = () -> {
       try {
@@ -399,8 +458,10 @@ public class ServiceClient {
     runner.start();
   }
 
+  @SuppressWarnings("unused")
   private void createEpisodesOfCare() {
     try {
+      //noinspection ConstantConditions
       for (int i = 0; i < NR_OF_EPISODESOFCARE; i++) {
         createEpisodeOfCare(i);
       }
@@ -434,8 +495,10 @@ public class ServiceClient {
     connection.getResponseMessage();
   }
 
+  @SuppressWarnings("unused")
   private void createEncounters() {
     try {
+      //noinspection ConstantConditions
       for (int i = 0; i < NR_OF_ENCOUNTERS; i++) {
         createEncounter(i);
         //        System.out.println("responseCode = " + responseCode + " Message: " + responseMessage);
@@ -472,8 +535,8 @@ public class ServiceClient {
 
   private Patient createNewPatient() {
     Patient p = new Patient();
-    p.setFirstname(firstnames.get(new Random().nextInt(firstnames.size() - 1)));
-    p.setFamilyname(lastnames.get(new Random().nextInt(lastnames.size() - 1)));
+    p.setFirstname(firstNames.get(new Random().nextInt(firstNames.size() - 1)));
+    p.setFamilyname(lastNames.get(new Random().nextInt(lastNames.size() - 1)));
     LocalDate localDate = generateRandomBirthDate();
     String identifier = "";
     if (localDate.getDayOfMonth() < 10) {
@@ -511,26 +574,30 @@ public class ServiceClient {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients/" + i1);
     return retrieveEntity(request, Patient.class);
   }
+
   private Address getAddress(int i1) {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/" + i1);
     return retrieveEntity(request, Address.class);
   }
+
+  @SuppressWarnings("unused")
   private EpisodeOfCare getEpisodeOfCare(int i1) {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/episodesofcare/" + i1);
     return retrieveEntity(request, EpisodeOfCare.class);
   }
-  
+
+  @SuppressWarnings("unused")
   private Encounter getEncounter(int i1) {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/encounters/" + i1);
     return retrieveEntity(request, Encounter.class);
   }
+
   private Condition getCondition(int i1) {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/conditions/" + i1);
     return retrieveEntity(request, Condition.class);
   }
-  
-  private <T> T retrieveEntity(HttpUriRequest request,Class<T> clazz)
-  {
+
+  private <T> T retrieveEntity(HttpUriRequest request, Class<T> clazz) {
     try {
       HttpResponse response = HttpClientBuilder.create().build().execute(request);
       HttpEntity entity = response.getEntity();
@@ -548,7 +615,7 @@ public class ServiceClient {
     }
     return null;
   }
-  
+
   private int getAddressCount() {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/addresses/amount");
     return retrieveAmount(request);
@@ -577,9 +644,9 @@ public class ServiceClient {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/patients/amount");
     return retrieveAmount(request);
   }
-  
-  private int getConditionCount()
-  {
+
+  @SuppressWarnings("unused")
+  private int getConditionCount() {
     HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/conditions/amount");
     return retrieveAmount(request);
   }
@@ -587,8 +654,8 @@ public class ServiceClient {
   private Address createNewAddress(int id) {
     Address address = new Address();
     address.setCity(cities.get(new Random().nextInt(cities.size() - 1)));
-    String street = streets.get(new Random().nextInt(streetnumbers.size() - 1));
-    String line = String.format("%s %s", street, streetnumbers.get(new Random().nextInt(streetnumbers.size() - 1)));
+    String street = streets.get(new Random().nextInt(streetNumbers.size() - 1));
+    String line = String.format("%s %s", street, streetNumbers.get(new Random().nextInt(streetNumbers.size() - 1)));
 
     address.setLine(line);
     int postalCode = new Random().nextInt(9999);
@@ -601,13 +668,14 @@ public class ServiceClient {
 
     return address;
   }
+
   private Condition createNewCondition(int id) {
     Condition condition = new Condition();
     condition.setIdentifier("" + id);
 //    condition.setCode();
 //    address.setCity(cities.get(new Random().nextInt(cities.size() - 1)));
-//    String street = streets.get(new Random().nextInt(streetnumbers.size() - 1));
-//    String line = String.format("%s %s", street, streetnumbers.get(new Random().nextInt(streetnumbers.size() - 1)));
+//    String street = streets.get(new Random().nextInt(streetNumbers.size() - 1));
+//    String line = String.format("%s %s", street, streetNumbers.get(new Random().nextInt(streetNumbers.size() - 1)));
 //
 //    address.setLine(line);
 //    int postalCode = new Random().nextInt(9999);
@@ -669,7 +737,7 @@ public class ServiceClient {
     encounter.setIdentifier("" + id);
     encounter.setStatus(status.get(new Random().nextInt(status.size() - 1)).getId());
     encounter.setResponsibleUnit(sksCodes.get(new Random().nextInt(sksCodes.size() - 1)).getId());
-    
+
     return encounter;
   }
 
@@ -763,6 +831,22 @@ public class ServiceClient {
       ObjectMapper mapper = new ObjectMapper();
       Period[] periods = mapper.readValue(s, Period[].class);
       return getRandomPeriodWithEnd(periods);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
+
+  private Period getPeriod(String id) {
+    HttpUriRequest request = new HttpGet("http://localhost:8080/microservices/api/periods/" + id);
+
+    try {
+      HttpResponse response = HttpClientBuilder.create().build().execute(request);
+
+      HttpEntity entity = response.getEntity();
+      String s = EntityUtils.toString(entity);
+      ObjectMapper mapper = new ObjectMapper();
+      return mapper.readValue(s, Period.class);
     } catch (IOException e) {
       e.printStackTrace();
     }

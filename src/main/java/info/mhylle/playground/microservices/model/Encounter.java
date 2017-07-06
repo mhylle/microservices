@@ -13,7 +13,8 @@ public class Encounter {
   private int priority;
   private String patient;
   private String episodeOfCare;
-  
+  private String diagnosis;
+
   public Encounter() {
     id = UUID.randomUUID();
   }
@@ -81,4 +82,13 @@ public class Encounter {
   {
     this.episodeOfCare = episodeOfCare;
   }
+
+  public String getDiagnosis() {
+    return diagnosis;
+  }
+
+  public void setDiagnosis(String diagnosis) {
+    this.diagnosis = diagnosis;
+  }
+
 }
